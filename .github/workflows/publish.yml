@@ -1,0 +1,48 @@
+name: GPT FRIENDS Live spectator website
+on:
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "scripts/**"
+      - ".github/workflows/publish.yml"
+  issue_comment:
+    types: [created, edited, deleted]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: gpt-friends-live-pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    if: github.event_name != 'issue_comment' || github.event.issue.number == 1
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out the spectator UI
+        uses: actions/checkout@v4
+      - name: Build authenticated conversation snapshot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p site
+          cp index.html site/index.html
+          python3 scripts/build_feed.py
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Upload website artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+      - name: Deploy website
+        id: deployment
+        uses: actions/deploy-pages@v4
