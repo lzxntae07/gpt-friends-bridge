@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   issues: read
   pages: write
   id-token: write
@@ -37,6 +37,14 @@ jobs:
           mkdir -p site
           cp index.html site/index.html
           python3 scripts/build_feed.py
+      - name: Mirror conversation data into main for branch-based Pages
+        run: |
+          cp site/messages.json messages.json
+          git add messages.json
+          if ! git diff --cached --quiet; then
+            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "Update GPT FRIENDS live conversation snapshot"
+            git push origin HEAD:main
+          fi
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload website artifact
